@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartcare-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartcare
+      POSTGRES_PASSWORD: smartcare_dev
+      POSTGRES_DB: smartcare
+    ports:
+      - "5432:5432"
+    volumes:
+      - smartcare_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcare -d smartcare"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  smartcare_data:

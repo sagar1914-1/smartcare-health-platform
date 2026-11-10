@@ -1,0 +1,125 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum HealthMetric {
+  HEART_RATE
+  BLOOD_PRESSURE
+  SPO2
+  TEMPERATURE
+  WEIGHT
+}
+
+enum IncidentStatus {
+  ACTIVE
+  RESOLVED
+  CANCELLED
+}
+
+enum NotificationStatus {
+  PENDING
+  SIMULATED
+  SENT
+  FAILED
+}
+
+enum NotificationChannel {
+  SMS
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         UserRole @default(PATIENT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  healthRecords      HealthRecord[]
+  emergencyContacts  EmergencyContact[]
+  emergencyIncidents EmergencyIncident[]
+}
+
+model HealthRecord {
+  id         String       @id @default(cuid())
+  metric     HealthMetric
+  value      Float
+  unit       String
+  notes      String?
+  recordedAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+}
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String
+  relationship String?
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notifications EmergencyNotification[]
+
+  @@index([userId])
+}
+
+model EmergencyIncident {
+  id         String         @id @default(cuid())
+  message    String?
+  latitude   Float?
+  longitude  Float?
+  status     IncidentStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now())
+  resolvedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notifications EmergencyNotification[]
+
+  @@index([userId, createdAt])
+}
+
+model EmergencyNotification {
+  id                String              @id @default(cuid())
+  recipientName     String
+  recipientPhone    String
+  channel           NotificationChannel @default(SMS)
+  status            NotificationStatus  @default(PENDING)
+  message           String
+  providerMessageId String?
+  errorMessage      String?
+  sentAt            DateTime?
+  createdAt         DateTime            @default(now())
+
+  incidentId String
+  incident   EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   EmergencyContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([incidentId, createdAt])
+  @@index([contactId])
+  @@index([status])
+}
