@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../lib/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env";
 import { registerSchema, loginSchema } from "./auth.validation";
 
-const prisma = new PrismaClient();
+
 
 export async function register(req: Request, res: Response) {
   try {

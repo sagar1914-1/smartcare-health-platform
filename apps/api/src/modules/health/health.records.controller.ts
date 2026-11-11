@@ -1,10 +1,9 @@
 
 import { Response } from "express";
-import { PrismaClient, HealthMetric } from "@prisma/client";
+import { HealthMetric } from "@prisma/client";
 import { z } from "zod";
 import { AuthRequest } from "../auth/auth.middleware";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../lib/prisma";
 
 const createHealthRecordSchema = z.object({
   metric: z.nativeEnum(HealthMetric),

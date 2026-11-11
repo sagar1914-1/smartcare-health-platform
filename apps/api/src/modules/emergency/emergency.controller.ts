@@ -1,13 +1,11 @@
 import { Response } from "express";
 import {
-  PrismaClient,
   IncidentStatus,
 } from "@prisma/client";
 import { z } from "zod";
 import { AuthRequest } from "../auth/auth.middleware";
 import { sendEmergencyNotifications } from "./notification.service";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../lib/prisma";
 
 // ============================================
 // EMERGENCY INCIDENT VALIDATION
