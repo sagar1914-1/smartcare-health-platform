@@ -31,7 +31,7 @@ export default function Home() {
     async function checkAPI() {
       try {
         const response = await fetch(
-          "http://localhost:4000/api/v1/health",
+         `${process.env.NEXT_PUBLIC_API_URL}/health`,
           { cache: "no-store" }
         );
 
