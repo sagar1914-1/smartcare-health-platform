@@ -57,6 +57,8 @@ model HealthRecord {
   id         String       @id @default(cuid())
   metric     HealthMetric
   value      Float
+  systolic   Int?
+  diastolic  Int?
   unit       String
   notes      String?
   recordedAt DateTime     @default(now())
