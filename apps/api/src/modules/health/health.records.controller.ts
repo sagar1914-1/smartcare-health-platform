@@ -8,9 +8,22 @@ import { prisma } from "../../lib/prisma";
 const createHealthRecordSchema = z.object({
   metric: z.nativeEnum(HealthMetric),
   value: z.number().finite(),
+  systolic: z.number().int().min(50).max(300).optional(),
+  diastolic: z.number().int().min(30).max(200).optional(),
   unit: z.string().trim().min(1).max(20),
   notes: z.string().trim().max(500).optional(),
   recordedAt: z.coerce.date().optional(),
+}).superRefine((data, ctx) => {
+  if (data.metric === HealthMetric.BLOOD_PRESSURE) {
+    if (data.systolic === undefined || data.diastolic === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Blood pressure requires both systolic and diastolic values.", path: ["systolic"] });
+    }
+    if (data.unit !== "mmHg") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Blood pressure must use mmHg.", path: ["unit"] });
+    }
+  } else if (data.systolic !== undefined || data.diastolic !== undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Systolic and diastolic values are only valid for blood pressure records." });
+  }
 });
 
 // CREATE HEALTH RECORD
@@ -38,12 +51,14 @@ export async function createHealthRecord(
       return;
     }
 
-    const { metric, value, unit, notes, recordedAt } = parsed.data;
+    const { metric, value, systolic, diastolic, unit, notes, recordedAt } = parsed.data;
 
     const record = await prisma.healthRecord.create({
       data: {
         metric,
         value,
+        systolic,
+        diastolic,
         unit,
         notes,
         recordedAt,
