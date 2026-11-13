@@ -17,6 +17,8 @@ type HealthRecord = {
   id: string;
   metric: HealthMetric;
   value: number;
+  systolic?: number | null;
+  diastolic?: number | null;
   unit: string;
   notes?: string | null;
   recordedAt: string;
@@ -151,6 +153,8 @@ export default function DashboardPage() {
 
   const [metric, setMetric] = useState<HealthMetric>("HEART_RATE");
   const [value, setValue] = useState("");
+  const [systolic, setSystolic] = useState("");
+  const [diastolic, setDiastolic] = useState("");
   const [unit, setUnit] = useState("bpm");
   const [notes, setNotes] = useState("");
 
@@ -290,6 +294,9 @@ export default function DashboardPage() {
   function handleMetricChange(nextMetric: HealthMetric) {
     setMetric(nextMetric);
     setUnit(defaultUnits[nextMetric]);
+    setValue("");
+    setSystolic("");
+    setDiastolic("");
   }
 
   // ADD HEALTH RECORD
@@ -297,8 +304,21 @@ export default function DashboardPage() {
     e.preventDefault();
 
     const numericValue = Number(value);
+    const numericSystolic = Number(systolic);
+    const numericDiastolic = Number(diastolic);
 
-    if (!value.trim() || !Number.isFinite(numericValue)) {
+    if (metric === "BLOOD_PRESSURE") {
+      if (
+        !systolic.trim() || !diastolic.trim() ||
+        !Number.isInteger(numericSystolic) ||
+        !Number.isInteger(numericDiastolic) ||
+        numericSystolic < 50 || numericSystolic > 300 ||
+        numericDiastolic < 30 || numericDiastolic > 200
+      ) {
+        setError("Enter valid systolic (50–300) and diastolic (30–200) values in mmHg.");
+        return;
+      }
+    } else if (!value.trim() || !Number.isFinite(numericValue)) {
       setError("Please enter a valid numeric reading.");
       return;
     }
@@ -312,7 +332,10 @@ export default function DashboardPage() {
         method: "POST",
         body: JSON.stringify({
           metric,
-          value: numericValue,
+          value: metric === "BLOOD_PRESSURE" ? numericSystolic : numericValue,
+          ...(metric === "BLOOD_PRESSURE"
+            ? { systolic: numericSystolic, diastolic: numericDiastolic }
+            : {}),
           unit,
           notes,
         }),
@@ -328,6 +351,8 @@ export default function DashboardPage() {
       }
 
       setValue("");
+      setSystolic("");
+      setDiastolic("");
       setNotes("");
       setSuccess("Health record added successfully.");
     } catch (err) {
@@ -795,37 +820,72 @@ export default function DashboardPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-2 block text-sm text-slate-300">
-                    Reading
-                  </label>
-
-                  <input
-                    type="number"
-                    step="any"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="Enter value"
-                    required
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
-                  />
+              {metric === "BLOOD_PRESSURE" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="systolic" className="mb-2 block text-sm text-slate-300">
+                      Systolic (upper number)
+                    </label>
+                    <input
+                      id="systolic"
+                      type="number"
+                      min="50"
+                      max="300"
+                      step="1"
+                      inputMode="numeric"
+                      value={systolic}
+                      onChange={(e) => setSystolic(e.target.value)}
+                      placeholder="e.g. 120"
+                      required
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="diastolic" className="mb-2 block text-sm text-slate-300">
+                      Diastolic (lower number)
+                    </label>
+                    <input
+                      id="diastolic"
+                      type="number"
+                      min="30"
+                      max="200"
+                      step="1"
+                      inputMode="numeric"
+                      value={diastolic}
+                      onChange={(e) => setDiastolic(e.target.value)}
+                      placeholder="e.g. 80"
+                      required
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                  <p className="col-span-2 text-xs text-slate-400">Enter both values in mmHg. Example: 120/80 mmHg.</p>
                 </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-slate-300">
-                    Unit
-                  </label>
-
-                  <input
-                    type="text"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    required
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
-                  />
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">Reading</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      placeholder="Enter value"
+                      required
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">Unit</label>
+                    <input
+                      type="text"
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="mb-2 block text-sm text-slate-300">
@@ -933,7 +993,11 @@ export default function DashboardPage() {
                       </td>
 
                       <td className="px-3 py-4 font-semibold">
-                        {record.value} {record.unit}
+                        {record.metric === "BLOOD_PRESSURE"
+                          ? record.systolic != null && record.diastolic != null
+                            ? `${record.systolic}/${record.diastolic} mmHg`
+                            : `${record.value} ${record.unit} (legacy record)`
+                          : `${record.value} ${record.unit}`}
                       </td>
 
                       <td className="px-3 py-4 text-slate-400">
