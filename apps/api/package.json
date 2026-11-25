@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "lint": "tsc --noEmit",
     "prisma:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "vercel-build": "prisma db push --skip-generate && prisma generate && tsc"
   },
   "dependencies": {
     "@prisma/client": "6.19.0",
